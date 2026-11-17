@@ -4,7 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import { SCENE_BANDEAU, SCENE_ECRAN, SCENE_VIDE } from './scene'
 
 // Au bout de combien de temps sans réponse visible les bonshommes arrivent.
-const DELAI_MS = 60_000
+const DELAI_MS = 60
 // Cadence des images ASCII dans le terminal.
 const IMAGE_MS = 250
 
