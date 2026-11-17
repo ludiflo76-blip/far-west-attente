@@ -6,24 +6,58 @@ const BAND = {
   props: { hasSurvey: false, isCollapsed: false, isWorking: true },
 } as const
 
-for (const surface of ['terminal', 'desktop'] as const) {
-  test(`les cow-boys arrivent après 1 min et repartent à la fin (${surface})`, async ($, on) => {
-    const clock = mock.clock(on)
-    on('turn.start', (_, e) => ({ turnId: e.turnId ?? 't1' }))
-    on('turn.complete', () => ({ text: '' }))
+const FOND = {
+  plugin: 'far-west-attente',
+  component: 'Backdrop',
+  props: { scene: 'far-west', plugin: 'far-west-attente', glass: { blur: 0, opacity: 0.55 } },
+} as const
 
-    await $.turn.start({ text: 'salut', turnId: 't1' } as never)
-    const ui = await $.ui.mount({ ...BAND, surface } as never)
-    expect(await ui.find({ type: 'Text', text: /ranch/ })).toBeUndefined()
+test('terminal : les bonshommes ASCII arrivent après 1 min et repartent à la fin', async ($, on) => {
+  const clock = mock.clock(on)
+  on('turn.start', (_, e) => ({ turnId: e.turnId ?? 't1' }))
+  on('turn.complete', () => ({ text: '' }))
 
-    await clock.advance(59_000)
-    expect(await ui.find({ type: 'Text', text: /ranch/ })).toBeUndefined()
+  await $.turn.start({ text: 'salut', turnId: 't1' } as never)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' } as never)
+  expect(await ui.find({ type: 'Text', text: /o\// })).toBeUndefined()
 
-    await clock.advance(2_000)
-    expect(await ui.find({ type: 'Text', text: /ranch/ })).toBeDefined()
+  await clock.advance(59_000)
+  expect(await ui.find({ type: 'Text', text: /o\// })).toBeUndefined()
 
-    await $.turn.complete({ turnId: 't1', answer: 'ok', durationMs: 61_000, isAborted: false } as never)
-    expect(await ui.find({ type: 'Text', text: /ranch/ })).toBeUndefined()
-    await ui.unmount()
-  })
-}
+  await clock.advance(2_000)
+  expect(await ui.find({ type: 'Text', text: /o\// })).toBeDefined()
+
+  // Le shérif entre un peu après le premier cow-boy.
+  expect(await ui.find({ type: 'Text', text: /_n_/ })).toBeUndefined()
+  await clock.advance(4_000)
+  expect(await ui.find({ type: 'Text', text: /_n_/ })).toBeDefined()
+
+  await $.turn.complete({ turnId: 't1', answer: 'ok', durationMs: 65_000, isAborted: false } as never)
+  expect(await ui.find({ type: 'Text', text: /o\// })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('bureau : le fond de scène se peuple après 1 min, puis se vide', async ($, on) => {
+  const clock = mock.clock(on)
+  on('turn.start', (_, e) => ({ turnId: e.turnId ?? 't1' }))
+  on('turn.complete', () => ({ text: '' }))
+
+  await $.turn.start({ text: 'salut', turnId: 't1' } as never)
+  const fond = await $.ui.mount({ ...FOND, surface: 'desktop' } as never)
+  const bandeau = await $.ui.mount({ ...BAND, surface: 'desktop' } as never)
+  const shérif = async () => {
+    const svg = (await fond.find({ type: 'Svg' })) as { props?: { source?: string } } | undefined
+    return JSON.stringify(svg ?? {}).includes('CLAC')
+  }
+
+  expect(await shérif()).toBe(false)
+  await clock.advance(61_000)
+  expect(await shérif()).toBe(true)
+  // Pas de bandeau sur le bureau : tout se passe derrière la conversation.
+  expect(await bandeau.find({ type: 'Svg' })).toBeUndefined()
+
+  await $.turn.complete({ turnId: 't1', answer: 'ok', durationMs: 61_000, isAborted: false } as never)
+  expect(await shérif()).toBe(false)
+  await fond.unmount()
+  await bandeau.unmount()
+})
