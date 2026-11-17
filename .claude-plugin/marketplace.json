@@ -1,1 +1,5 @@
-
+{
+  "name": "ludiflo-mods",
+  "owner": { "name": "ludiflo76-blip" },
+  "plugins": [{ "name": "far-west-attente", "source": "./" }]
+}
