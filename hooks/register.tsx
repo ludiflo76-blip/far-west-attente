@@ -17,26 +17,36 @@ const LARGEUR = 70
 
 const LASSO = ['  (_)   ', '   (_)  ', '  (_)   ', ' (_)    ']
 const GALOP = [String.raw` /\  /\ `, '  ||  ||']
-const BULLE = ['  @~  ', ' ~@   ', '  ?   ', '  ~@~ ']
 const GRATTE = ['  o/  ', '  o)  ']
 const MARCHE = [String.raw` / \  `, '  |   ']
 
-const cowboy = (f: number, versLaGauche: boolean): string[] => {
-  const lignes = [LASSO[f % 4] ?? '', '   o/   ', ' ~=|=<  ', GALOP[f % 2] ?? '']
-  if (!versLaGauche) return lignes
-  const miroir: Record<string, string> = { '/': '\\', '\\': '/', '<': '>', '>': '<', '(': ')', ')': '(' }
-  return lignes.map(l => [...l].reverse().map(c => miroir[c] ?? c).join(''))
+// Les onomatopées : un mot toutes les 8 images (2 s), puis un silence.
+function mot(f: number, mots: readonly string[]): string {
+  if (f % 8 >= 6) return ''
+  return mots[Math.floor(f / 8) % mots.length] ?? ''
 }
 
-const penseur = (f: number, marche: boolean): string[] => [
-  BULLE[f % 4] ?? '',
+const cowboy = (f: number, versLaGauche: boolean, mots: readonly string[]): string[] => {
+  const lignes = [LASSO[f % 4] ?? '', '   o/   ', ' ~=|=<  ', GALOP[f % 2] ?? '']
+  // La bulle reste à l'endroit, même quand le cow-boy part vers la gauche.
+  const bulle = mot(f, mots)
+  if (!versLaGauche) return [bulle, ...lignes]
+  const miroir: Record<string, string> = { '/': '\\', '\\': '/', '<': '>', '>': '<', '(': ')', ')': '(' }
+  return [bulle, ...lignes.map(l => [...l].reverse().map(c => miroir[c] ?? c).join(''))]
+}
+
+const penseur = (f: number, marche: boolean, mots: readonly string[]): string[] => [
+  '',
+  marche ? '' : mot(f, mots),
   marche ? '  o   ' : (GRATTE[f % 2] ?? ''),
   ' /|\\  ',
   marche ? (MARCHE[f % 2] ?? '') : String.raw` / \  `,
 ]
 
-const SHERIF_ARME = ['  _n_   ~~.  ', '   o__/      ', '  <*|        ', String.raw`  / \        `]
-const SHERIF_CLAC = [String.raw`  _n_          \|/`, '   o              ', '  <*|---~~~~~~ -*-', String.raw`  / \         /|\ `]
+const SHERIF_ARME = ['  Grrr!', '  _n_   ~~.  ', '   o__/      ', '  <*|        ', String.raw`  / \        `]
+const SHERIF_CLAC = ['               CLAC!', String.raw`  _n_          \|/`, '   o              ', '  <*|---~~~~~~ -*-', String.raw`  / \         /|\ `]
+
+const VIREVOLTANT = [' @ ', ' # ']
 
 function poser(grille: string[][], dessin: string[], x: number) {
   dessin.forEach((ligne, y) => {
@@ -50,11 +60,11 @@ function poser(grille: string[][], dessin: string[], x: number) {
 
 // f compte les images depuis l'apparition : chacun entre à son tour.
 export function asciiScene(f: number): string[] {
-  const grille = [0, 1, 2, 3].map(() => Array.from({ length: LARGEUR }, () => ' '))
+  const grille = [0, 1, 2, 3, 4].map(() => Array.from({ length: LARGEUR }, () => ' '))
   const tour = LARGEUR + 10
 
   // Cow-boy 1 : entre tout de suite, traverse de gauche à droite.
-  poser(grille, cowboy(f, false), ((f * 2) % tour) - 9)
+  poser(grille, cowboy(f, false, ['Yiii-haaa!', 'Hue!', 'Hiiiii!']), ((f * 2) % tour) - 9)
 
   // Le shérif : entre à l'image 6, se plante à gauche et fouette.
   if (f >= 6) {
@@ -66,16 +76,22 @@ export function asciiScene(f: number): string[] {
   // Penseur 1 : entre à l'image 16 par la droite et s'arrête pour réfléchir.
   if (f >= 16) {
     const x = Math.max(LARGEUR - 26, LARGEUR - (f - 16))
-    poser(grille, penseur(f, x > LARGEUR - 26), x)
+    poser(grille, penseur(f, x > LARGEUR - 26, ['Hmmm...', 'Euh...']), x)
   }
 
   // Cow-boy 2 : entre à l'image 28, traverse de droite à gauche.
-  if (f >= 28) poser(grille, cowboy(f, true), LARGEUR - (((f - 28) * 2) % tour))
+  if (f >= 28) poser(grille, cowboy(f, true, ['Yahou!', 'Ho-he!', 'Hiiiii!']), LARGEUR - (((f - 28) * 2) % tour))
 
   // Penseur 2 : entre à l'image 40 par la droite et s'installe plus loin.
   if (f >= 40) {
     const x = Math.max(LARGEUR - 42, LARGEUR - (f - 40))
-    poser(grille, penseur(f + 1, x > LARGEUR - 42), x)
+    poser(grille, penseur(f + 3, x > LARGEUR - 42, ['Pfff...', 'Hum?']), x)
+  }
+
+  // Un virevoltant roule en bas, poussé par le vent.
+  if (f >= 50) {
+    const x = ((f - 50) * 3) % tour - 3
+    poser(grille, ['', '', '', f % 4 < 2 ? 'fffiou~' : '', VIREVOLTANT[f % 2] ?? ''], x)
   }
 
   return grille.map(r => r.join('').trimEnd())
@@ -121,7 +137,7 @@ export const register: Register = on => {
     const { Svg } = $.ui.resolve(e)
     const visible = await read($, isVisible)
     return visible
-      ? <Svg source={SCENE_ECRAN} alt="Des cow-boys bâtons galopent, des bonshommes se grattent la tête et un shérif fouette le texte" isInteractive />
+      ? <Svg source={SCENE_ECRAN} alt="Des cow-boys bâtons galopent en criant yiii-haaa, des bonshommes se grattent la tête et un shérif fouette le texte" isInteractive />
       : <Svg source={SCENE_VIDE} alt="" />
   })
 
@@ -179,8 +195,8 @@ export const register: Register = on => {
     return (
       <Svg
         source={SCENE_BANDEAU}
-        alt="Des cow-boys bâtons galopent, des bonshommes se grattent la tête et un shérif fouette le texte"
-        height={110}
+        alt="Des cow-boys bâtons galopent en criant yiii-haaa, des bonshommes se grattent la tête et un shérif fouette le texte"
+        height={140}
         isInteractive
       />
     )
