@@ -1,1 +1,1 @@
-{ "name": "far-west-attente", "version": "0.1.0", "description": "Après 1 minute de réflexion, des cow-boys bâtons font tourner leur lasso pendant que d'autres se grattent la tête.", "types": "./types/index.d.ts" }
+{"name": "far-west-attente", "version": "0.2.0", "description": "Dès que Claude réfléchit, des cow-boys bâtons galopent en criant « Yiii-haaa ! », un shérif fouette le texte et d'autres se grattent la tête, avec des bulles d'onomatopées.", "types": "./types/index.d.ts"}
