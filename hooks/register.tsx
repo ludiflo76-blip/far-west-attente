@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import { SCENE_BANDEAU, SCENE_ECRAN, SCENE_VIDE } from './scene'
+import { SCENE_BANDEAU, SCENE_ECRAN, SCENE_MOBILE, SCENE_VIDE } from './scene'
 
 // Au bout de combien de temps sans réponse visible les bonshommes arrivent.
 const DELAI_MS = 60
@@ -137,7 +137,7 @@ export const register: Register = on => {
     const { Svg } = $.ui.resolve(e)
     const visible = await read($, isVisible)
     return visible
-      ? <Svg source={SCENE_ECRAN} alt="Des cow-boys bâtons galopent en criant yiii-haaa, des bonshommes se grattent la tête et un shérif fouette le texte" isInteractive />
+      ? <Svg source={e.surface === 'mobile' ? SCENE_MOBILE : SCENE_ECRAN} alt="Des cow-boys bâtons galopent en criant yiii-haaa, des bonshommes se grattent la tête et un shérif fouette le texte" isInteractive />
       : <Svg source={SCENE_VIDE} alt="" />
   })
 
@@ -202,3 +202,4 @@ export const register: Register = on => {
     )
   })
 }
+
